@@ -804,6 +804,11 @@ export default function App() {
     const mainVideoElement = project.slides[0]?.elements.find(el => el.type === 'video');
     const isInteractiveVideo = forceMode === 'video' || (!forceMode && !!mainVideoElement && project.slides.length === 1);
 
+    // Simplified dependencies to let Moodle resolve sub-libraries from its own internal cache
+    const preloadedDependencies = isInteractiveVideo 
+      ? [{ machineName: 'H5P.InteractiveVideo', majorVersion: 1, minorVersion: 27 }]
+      : [{ machineName: 'H5P.CoursePresentation', majorVersion: 1, minorVersion: 26 }];
+
     const h5pJson = {
       title: project.title || 'Learning Module',
       language: 'en',
@@ -811,9 +816,7 @@ export default function App() {
       embedTypes: ['iframe'],
       license: 'U',
       author: 'Interactive Maker',
-      preloadedDependencies: isInteractiveVideo 
-        ? [{ machineName: 'H5P.InteractiveVideo', majorVersion: '1', minorVersion: '27' }]
-        : [{ machineName: 'H5P.CoursePresentation', majorVersion: '1', minorVersion: '26' }]
+      preloadedDependencies: preloadedDependencies
     };
 
     // Use flat file paths to avoid explicit directory entries that fail strict H5P validation
@@ -841,25 +844,58 @@ export default function App() {
               let library = '';
               let params: any = {};
 
-              if (cp.type === 'quiz') {
-                library = 'H5P.MultiChoice 1.16';
-                params = {
-                  question: `<p>${cp.question}</p>`,
-                  answers: cp.options.map(opt => ({
-                    text: `<div>${opt}</div>`,
-                    correct: opt === cp.correctAnswer,
-                    tipsAndFeedback: { tip: '', chosenFeedback: '', notChosenFeedback: '' }
-                  })),
-                  behaviour: { enableRetry: true, enableSolutionsButton: true, singlePoint: true, randomAnswers: true }
-                };
-              } else if (cp.type === 'true-false') {
-                library = 'H5P.TrueFalse 1.8';
-                params = {
-                  question: `<p>${cp.question}</p>`,
-                  correctAnswer: cp.correctAnswer === 'True',
-                  behaviour: { enableRetry: true, enableSolutionsButton: true }
-                };
-              }
+                  if (cp.type === 'quiz') {
+                    library = 'H5P.MultiChoice 1.16';
+                    params = {
+                      question: `<p>${cp.question}</p>`,
+                      answers: cp.options.map(opt => ({
+                        text: `<div>${opt}</div>`,
+                        correct: opt === cp.correctAnswer,
+                        tipsAndFeedback: { tip: '', chosenFeedback: '', notChosenFeedback: '' }
+                      })),
+                      behaviour: { 
+                        enableRetry: true, 
+                        enableSolutionsButton: true, 
+                        singlePoint: true, 
+                        randomAnswers: true,
+                        showSolutionsRequiresInput: true
+                      },
+                      UI: {
+                        checkAnswerButton: 'Check',
+                        showSolutionButton: 'Show solution',
+                        tryAgainButton: 'Retry',
+                        tipsLabel: 'Show tip',
+                        scoreBarLabel: 'You got :num out of :total points',
+                        tipAvailable: 'Tip available',
+                        feedbackAvailable: 'Feedback available',
+                        readFeedback: 'Read feedback',
+                        wrongAnswer: 'Wrong answer',
+                        correctAnswer: 'Correct answer',
+                        shouldCheck: 'Should have been checked',
+                        shouldNotCheck: 'Should not have been checked',
+                        noInput: 'Please answer before viewing the solution',
+                        multiChoice: 'Multiple choice question: :question',
+                        multiChoiceOption: 'Option: :option'
+                      }
+                    };
+                  } else if (cp.type === 'true-false') {
+                    library = 'H5P.TrueFalse 1.8';
+                    params = {
+                      question: `<p>${cp.question}</p>`,
+                      correctAnswer: cp.correctAnswer === 'True',
+                      behaviour: { enableRetry: true, enableSolutionsButton: true },
+                      l10n: {
+                        trueText: 'True',
+                        falseText: 'False',
+                        checkAnswer: 'Check',
+                        tryAgain: 'Retry',
+                        showSolution: 'Show solution',
+                        wrongAnswerText: 'Wrong answer',
+                        correctAnswerText: 'Correct answer',
+                        scoreBarLabel: 'You got :num out of :total points'
+                      }
+                    };
+                  }
 
               return {
                 x: 10,
@@ -972,14 +1008,47 @@ export default function App() {
                         correct: opt === el.config?.correctAnswer,
                         tipsAndFeedback: { tip: '', chosenFeedback: '', notChosenFeedback: '' }
                       })),
-                      behaviour: { enableRetry: true, enableSolutionsButton: true, singlePoint: true, randomAnswers: true }
+                      behaviour: { 
+                        enableRetry: true, 
+                        enableSolutionsButton: true, 
+                        singlePoint: true, 
+                        randomAnswers: true,
+                        showSolutionsRequiresInput: true
+                      },
+                      UI: {
+                        checkAnswerButton: 'Check',
+                        showSolutionButton: 'Show solution',
+                        tryAgainButton: 'Retry',
+                        tipsLabel: 'Show tip',
+                        scoreBarLabel: 'You got :num out of :total points',
+                        tipAvailable: 'Tip available',
+                        feedbackAvailable: 'Feedback available',
+                        readFeedback: 'Read feedback',
+                        wrongAnswer: 'Wrong answer',
+                        correctAnswer: 'Correct answer',
+                        shouldCheck: 'Should have been checked',
+                        shouldNotCheck: 'Should not have been checked',
+                        noInput: 'Please answer before viewing the solution',
+                        multiChoice: 'Multiple choice question: :question',
+                        multiChoiceOption: 'Option: :option'
+                      }
                     };
                   } else if (el.type === 'true-false') {
                     library = 'H5P.TrueFalse 1.8';
                     params = {
                       question: `<p>${el.config?.question || ''}</p>`,
                       correctAnswer: el.config?.correctAnswer === 'True',
-                      behaviour: { enableRetry: true, enableSolutionsButton: true }
+                      behaviour: { enableRetry: true, enableSolutionsButton: true },
+                      l10n: {
+                        trueText: 'True',
+                        falseText: 'False',
+                        checkAnswer: 'Check',
+                        tryAgain: 'Retry',
+                        showSolution: 'Show solution',
+                        wrongAnswerText: 'Wrong answer',
+                        correctAnswerText: 'Correct answer',
+                        scoreBarLabel: 'You got :num out of :total points'
+                      }
                     };
                   } else if (el.type === 'drag-words') {
                     library = 'H5P.DragText 1.10';
